@@ -72,7 +72,7 @@ class VoiceAgentService {
       return;
     }
 
-    const bargeIn = localStorage.getItem('ikea_barge_in') !== 'false';
+    const bargeIn = localStorage.getItem('ikea_barge_in') === 'true';
     if ((!bargeIn && this.isSpeaking) || this.isThinking) {
       console.log('Refusing to start listening: isSpeaking =', this.isSpeaking, 'isThinking =', this.isThinking, 'bargeIn =', bargeIn);
       return;
@@ -177,7 +177,7 @@ class VoiceAgentService {
   // Speak text using SpeechSynthesis or Premium API TTS
   speak(text, onStart, onEnd, onBoundary) {
     this.stopSpeaking();
-    const bargeIn = localStorage.getItem('ikea_barge_in') !== 'false';
+    const bargeIn = localStorage.getItem('ikea_barge_in') === 'true';
     if (!bargeIn) {
       this.stopListening();
     }
@@ -208,7 +208,7 @@ class VoiceAgentService {
       return;
     }
 
-    const ttsEngine = localStorage.getItem('ikea_tts_engine') || 'browser';
+    const ttsEngine = localStorage.getItem('ikea_tts_engine') || 'puter';
     const openaiKey = localStorage.getItem('ikea_openai_api_key') || '';
     const elevenlabsKey = localStorage.getItem('ikea_elevenlabs_api_key') || '';
 

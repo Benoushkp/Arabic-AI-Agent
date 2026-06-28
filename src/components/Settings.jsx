@@ -5,18 +5,18 @@ import { Volume2, Globe, Sparkles, User, Info } from 'lucide-react';
 export default function Settings({ theme, toggleTheme }) {
   const [voices, setVoices] = useState([]);
   const [selectedVoice, setSelectedVoice] = useState(localStorage.getItem('ikea_voice_name') || '');
-  const [agentName, setAgentName] = useState(localStorage.getItem('ikea_agent_name') || 'Sofia');
+  const [agentName, setAgentName] = useState(localStorage.getItem('ikea_agent_name') || 'Karim');
   const [savedStatus, setSavedStatus] = useState(false);
   const [langPreference, setLangPreference] = useState(localStorage.getItem('ikea_language_preference') || 'bilingual');
-  const [bargeIn, setBargeIn] = useState(localStorage.getItem('ikea_barge_in') !== 'false');
+  const [bargeIn, setBargeIn] = useState(localStorage.getItem('ikea_barge_in') === 'true');
   const [apiKey, setApiKey] = useState(localStorage.getItem('ikea_gemini_api_key') || '');
-  const [ttsEngine, setTtsEngine] = useState(localStorage.getItem('ikea_tts_engine') || 'browser');
+  const [ttsEngine, setTtsEngine] = useState(localStorage.getItem('ikea_tts_engine') || 'puter');
   const [openaiApiKey, setOpenaiApiKey] = useState(localStorage.getItem('ikea_openai_api_key') || '');
   const [openaiVoice, setOpenaiVoice] = useState(localStorage.getItem('ikea_openai_voice') || 'shimmer');
   const [elevenlabsApiKey, setElevenlabsApiKey] = useState(localStorage.getItem('ikea_elevenlabs_api_key') || '');
   const [elevenlabsVoiceId, setElevenlabsVoiceId] = useState(localStorage.getItem('ikea_elevenlabs_voice_id') || '21m00Tcm4TlvDq8ikWAM');
   const [puterProvider, setPuterProvider] = useState(localStorage.getItem('ikea_puter_provider') || 'openai');
-  const [puterVoice, setPuterVoice] = useState(localStorage.getItem('ikea_puter_voice') || 'nova');
+  const [puterVoice, setPuterVoice] = useState(localStorage.getItem('ikea_puter_voice') || 'echo');
 
   useEffect(() => {
     // Load voices

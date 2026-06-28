@@ -226,7 +226,7 @@ export default function PhoneSimulator({ onCallFinished }) {
     const kbFaqs = JSON.parse(localStorage.getItem('ikea_kb_faqs')) || [];
     
     const kbData = { stores: kbStores, catalog: kbCatalog, faqs: kbFaqs };
-    const agentName = localStorage.getItem('ikea_agent_name') || 'Sofia';
+    const agentName = localStorage.getItem('ikea_agent_name') || 'Karim';
 
     let replyText = "";
 
@@ -262,7 +262,7 @@ export default function PhoneSimulator({ onCallFinished }) {
         () => {
           setAgentSpeaking(true);
           // If barge-in is enabled, start listening as soon as speaking begins
-          const bargeIn = localStorage.getItem('ikea_barge_in') !== 'false';
+          const bargeIn = localStorage.getItem('ikea_barge_in') === 'true';
           if (bargeIn && !isMutedRef.current && callStateRef.current === 'connected') {
             listenToUser();
           }
@@ -270,7 +270,7 @@ export default function PhoneSimulator({ onCallFinished }) {
         () => {
           setAgentSpeaking(false);
           // If barge-in is disabled, restart listening now that agent has finished speaking
-          const bargeIn = localStorage.getItem('ikea_barge_in') !== 'false';
+          const bargeIn = localStorage.getItem('ikea_barge_in') === 'true';
           if (!bargeIn && !isMutedRef.current && callStateRef.current === 'connected') {
             listenToUser();
           }
@@ -293,7 +293,7 @@ export default function PhoneSimulator({ onCallFinished }) {
 
   // Speech-to-Text Listener
   const listenToUser = () => {
-    const bargeIn = localStorage.getItem('ikea_barge_in') !== 'false';
+    const bargeIn = localStorage.getItem('ikea_barge_in') === 'true';
     if (
       callStateRef.current !== 'connected' || 
       (!bargeIn && voiceAgent.isSpeaking) || 
@@ -334,7 +334,7 @@ export default function PhoneSimulator({ onCallFinished }) {
         
         // Auto-restart listening if call is still active
         setTimeout(() => {
-          const bargeIn = localStorage.getItem('ikea_barge_in') !== 'false';
+          const bargeIn = localStorage.getItem('ikea_barge_in') === 'true';
           const shouldListen = callStateRef.current === 'connected' && 
                                (!voiceAgent.isSpeaking || bargeIn) && 
                                !voiceAgent.isThinking && 
@@ -351,7 +351,7 @@ export default function PhoneSimulator({ onCallFinished }) {
         
         // Auto-restart listening on clean close
         setTimeout(() => {
-          const bargeIn = localStorage.getItem('ikea_barge_in') !== 'false';
+          const bargeIn = localStorage.getItem('ikea_barge_in') === 'true';
           const currentAgentSpeaking = voiceAgent.activeUtterance !== null || voiceAgent.isSpeaking;
           const shouldListen = callStateRef.current === 'connected' && 
                                (!currentAgentSpeaking || bargeIn) && 
@@ -434,7 +434,7 @@ export default function PhoneSimulator({ onCallFinished }) {
               {/* Call Status Head */}
               <div className="call-status-box">
                 <div className={`agent-avatar ${callState === 'ringing' ? 'ringing' : ''} ${agentSpeaking ? 'talking' : ''}`}>
-                  {localStorage.getItem('ikea_agent_name')?.slice(0,1) || 'S'}
+                  {localStorage.getItem('ikea_agent_name')?.slice(0,1) || 'K'}
                 </div>
                 <div className="phone-number-display">{phoneNumber}</div>
                 <div className="call-state-text">
@@ -445,11 +445,11 @@ export default function PhoneSimulator({ onCallFinished }) {
                       {isMuted ? (
                         <span style={{ color: 'var(--status-error)' }}>Muted</span>
                       ) : isThinking ? (
-                        <span className="pulse-text" style={{ color: 'var(--ikea-yellow)', fontWeight: '500' }}>{localStorage.getItem('ikea_agent_name') || 'Sofia'} is thinking...</span>
+                        <span className="pulse-text" style={{ color: 'var(--ikea-yellow)', fontWeight: '500' }}>{localStorage.getItem('ikea_agent_name') || 'Karim'} is thinking...</span>
                       ) : agentSpeaking ? (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: '#60a5fa', fontWeight: '500' }}>
-                          {localStorage.getItem('ikea_barge_in') !== 'false' && userSpeaking && <span className="listening-dot" />}
-                          {localStorage.getItem('ikea_agent_name') || 'Sofia'} is speaking...
+                          {localStorage.getItem('ikea_barge_in') === 'true' && userSpeaking && <span className="listening-dot" />}
+                          {localStorage.getItem('ikea_agent_name') || 'Karim'} is speaking...
                         </span>
                       ) : userSpeaking ? (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#34d399', fontWeight: '500' }}>
