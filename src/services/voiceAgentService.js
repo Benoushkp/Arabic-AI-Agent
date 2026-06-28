@@ -197,24 +197,35 @@ class VoiceAgentService {
       return;
     }
 
+    // Split speakableText into sentences for look-ahead pre-fetching queue (to minimize latency!)
+    const sentences = speakableText
+      .split(/[.!?،؟\n]+/)
+      .map(s => s.trim())
+      .filter(s => s.length > 2);
+
+    if (sentences.length === 0) {
+      onEnd();
+      return;
+    }
+
     const ttsEngine = localStorage.getItem('ikea_tts_engine') || 'browser';
     const openaiKey = localStorage.getItem('ikea_openai_api_key') || '';
     const elevenlabsKey = localStorage.getItem('ikea_elevenlabs_api_key') || '';
 
     if (ttsEngine === 'puter') {
-      this.playPuterTTS(speakableText, onStart, onEnd).catch(err => {
+      this.playPuterTTS(sentences, onStart, onEnd).catch(err => {
         console.error("Puter TTS failed, falling back to browser.", err);
         this.speakBrowser(speakableText, segments, onStart, onEnd, onBoundary);
       });
       return;
     } else if (ttsEngine === 'openai' && openaiKey) {
-      this.playOpenAITTS(speakableText, openaiKey, onStart, onEnd).catch(err => {
+      this.playOpenAITTS(sentences, openaiKey, onStart, onEnd).catch(err => {
         console.error("OpenAI TTS failed, falling back to browser.", err);
         this.speakBrowser(speakableText, segments, onStart, onEnd, onBoundary);
       });
       return;
     } else if (ttsEngine === 'elevenlabs' && elevenlabsKey) {
-      this.playElevenLabsTTS(speakableText, elevenlabsKey, onStart, onEnd).catch(err => {
+      this.playElevenLabsTTS(sentences, elevenlabsKey, onStart, onEnd).catch(err => {
         console.error("ElevenLabs TTS failed, falling back to browser.", err);
         this.speakBrowser(speakableText, segments, onStart, onEnd, onBoundary);
       });
@@ -336,9 +347,89 @@ class VoiceAgentService {
     });
   }
 
-  // Puter Free TTS caller
-  async playPuterTTS(text, onStart, onEnd) {
+  // Play sentences in a look-ahead background pre-fetching queue to achieve near-zero latency
+  async playSentenceQueue(sentences, fetchAudioFn, onStart, onEnd) {
     onStart();
+
+    let currentIndex = 0;
+    let audioQueue = [];
+
+    const prefetchSentence = (index) => {
+      if (index >= sentences.length) return null;
+      if (audioQueue[index]) return audioQueue[index];
+
+      const sentenceText = sentences[index];
+      const promise = fetchAudioFn(sentenceText)
+        .then(audio => {
+          if (!audio) throw new Error("No audio returned from generator");
+          return audio;
+        });
+
+      audioQueue[index] = promise;
+      return promise;
+    };
+
+    // Prefetch first two immediately
+    prefetchSentence(0);
+    prefetchSentence(1);
+
+    const playNext = async () => {
+      if (!this.isSpeaking) return;
+      if (currentIndex >= sentences.length) {
+        this.isSpeaking = false;
+        onEnd();
+        return;
+      }
+
+      try {
+        if (!audioQueue[currentIndex]) {
+          prefetchSentence(currentIndex);
+        }
+
+        const audio = await audioQueue[currentIndex];
+        if (!this.isSpeaking) return;
+
+        this.activeAudio = audio;
+
+        // Prefetch next-next sentence in parallel while this is playing
+        prefetchSentence(currentIndex + 2);
+
+        audio.onended = () => {
+          if (audio._ObjectURL) {
+            URL.revokeObjectURL(audio._ObjectURL);
+          }
+          if (this.activeAudio === audio) {
+            this.activeAudio = null;
+          }
+          currentIndex++;
+          playNext();
+        };
+
+        audio.onerror = (e) => {
+          console.error("Audio sentence playback error:", e);
+          if (audio._ObjectURL) {
+            URL.revokeObjectURL(audio._ObjectURL);
+          }
+          if (this.activeAudio === audio) {
+            this.activeAudio = null;
+          }
+          currentIndex++;
+          playNext();
+        };
+
+        await audio.play();
+      } catch (err) {
+        console.error("Failed to play sentence in queue:", err);
+        currentIndex++;
+        playNext();
+      }
+    };
+
+    playNext();
+  }
+
+  // Puter Free TTS caller
+  async playPuterTTS(sentences, onStart, onEnd) {
     if (typeof window === 'undefined' || !window.puter || !window.puter.ai) {
       throw new Error("Puter.js script is not initialized on window.");
     }
@@ -370,7 +461,6 @@ class VoiceAgentService {
         voice: voice || '21m00Tcm4TlvDq8ikWAM' // Rachel
       };
     } else {
-      // Puter default AWS Polly standard/neural
       options = {
         voice: voice || 'Joanna',
         engine: 'neural',
@@ -378,83 +468,81 @@ class VoiceAgentService {
       };
     }
 
-    const audio = await window.puter.ai.txt2speech(text, options);
-    if (!audio) {
-      throw new Error("Puter TTS failed to generate audio object.");
-    }
-
-    if (!this.isSpeaking) return;
-
-    this.activeAudio = audio;
-
-    audio.onended = () => {
-      this.isSpeaking = false;
-      this.activeAudio = null;
-      onEnd();
+    const fetchAudioFn = async (sentenceText) => {
+      const audio = await window.puter.ai.txt2speech(sentenceText, options);
+      if (!audio) throw new Error("Puter TTS generated null audio");
+      return audio;
     };
 
-    audio.onerror = (e) => {
-      console.error("Puter audio playback error:", e);
-      this.isSpeaking = false;
-      this.activeAudio = null;
-      onEnd();
-    };
-
-    await audio.play();
+    await this.playSentenceQueue(sentences, fetchAudioFn, onStart, onEnd);
   }
 
   // Premium OpenAI TTS caller
-  async playOpenAITTS(text, apiKey, onStart, onEnd) {
-    onStart();
+  async playOpenAITTS(sentences, apiKey, onStart, onEnd) {
     const voice = localStorage.getItem('ikea_openai_voice') || 'shimmer';
-    const response = await fetch('https://api.openai.com/v1/audio/speech', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'tts-1',
-        input: text,
-        voice: voice,
-        response_format: 'mp3'
-      })
-    });
+    
+    const fetchAudioFn = async (sentenceText) => {
+      const response = await fetch('https://api.openai.com/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'tts-1',
+          input: sentenceText,
+          voice: voice,
+          response_format: 'mp3'
+        })
+      });
 
-    if (!response.ok) {
-      throw new Error(`OpenAI TTS responded with status ${response.status}`);
-    }
+      if (!response.ok) {
+        throw new Error(`OpenAI TTS responded with status ${response.status}`);
+      }
 
-    const blob = await response.blob();
-    this.playAudioBlob(blob, onEnd);
+      const blob = await response.blob();
+      const audioUrl = URL.createObjectURL(blob);
+      const audio = new Audio(audioUrl);
+      audio._ObjectURL = audioUrl;
+      return audio;
+    };
+
+    await this.playSentenceQueue(sentences, fetchAudioFn, onStart, onEnd);
   }
 
   // Premium ElevenLabs TTS caller
-  async playElevenLabsTTS(text, apiKey, onStart, onEnd) {
-    onStart();
+  async playElevenLabsTTS(sentences, apiKey, onStart, onEnd) {
     const voiceId = localStorage.getItem('ikea_elevenlabs_voice_id') || '21m00Tcm4TlvDq8ikWAM';
-    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-      method: 'POST',
-      headers: {
-        'xi-api-key': apiKey,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        text: text,
-        model_id: 'eleven_multilingual_v2',
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75
-        }
-      })
-    });
+    
+    const fetchAudioFn = async (sentenceText) => {
+      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+        method: 'POST',
+        headers: {
+          'xi-api-key': apiKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          text: sentenceText,
+          model_id: 'eleven_multilingual_v2',
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.75
+          }
+        })
+      });
 
-    if (!response.ok) {
-      throw new Error(`ElevenLabs TTS responded with status ${response.status}`);
-    }
+      if (!response.ok) {
+        throw new Error(`ElevenLabs TTS responded with status ${response.status}`);
+      }
 
-    const blob = await response.blob();
-    this.playAudioBlob(blob, onEnd);
+      const blob = await response.blob();
+      const audioUrl = URL.createObjectURL(blob);
+      const audio = new Audio(audioUrl);
+      audio._ObjectURL = audioUrl;
+      return audio;
+    };
+
+    await this.playSentenceQueue(sentences, fetchAudioFn, onStart, onEnd);
   }
 
   // Audio blob player with cancel hooks
