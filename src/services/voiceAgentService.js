@@ -569,10 +569,14 @@ class VoiceAgentService {
     }));
     
     // Append current user input if not already in history
-    contents.push({
-      role: 'user',
-      parts: [{ text: userInput }]
-    });
+    const lastMsgInHistory = chatHistory.length > 0 ? chatHistory[chatHistory.length - 1] : null;
+    const isAlreadyInHistory = lastMsgInHistory && lastMsgInHistory.text === userInput;
+    if (!isAlreadyInHistory) {
+      contents.push({
+        role: 'user',
+        parts: [{ text: userInput }]
+      });
+    }
 
     const payload = {
       contents: contents,
@@ -688,6 +692,9 @@ class VoiceAgentService {
                           text.includes('عائلة') || text.includes('عضو') || text.includes('خصم') || text.includes('بطاقة');
 
     const isClosingQuery = text.includes('thanks') || text.includes('thank you') || text.includes('bye') || text.includes('goodbye') || text.includes('shukran') || text.includes('شكرا') || text.includes('مع السلامة');
+
+    const isGreetingQuery = text.includes('hello') || text.includes('hi') || text.includes('hey') || text.includes('welcome') || text.includes('greet') ||
+                            text.includes('مرحبا') || text.includes('هلا') || text.includes('السلام') || text.includes('صباح') || text.includes('مساء');
 
     // 1. Complaints
     // Check if the user has already lodged a complaint in this call session
@@ -868,14 +875,24 @@ class VoiceAgentService {
       }
     }
 
-    // 10. Arabic Greetings / Input
-    if (isArabicOnly) {
-      return "يا هلا بك في ايكيا الإمارات. تسلم يا خوي على تواصلك معنا، ويسعدني وايد أخدمك. كيف أقدر أساعدك اليوم؟";
+    // 10. Greetings (explicit greeting keyword match)
+    if (isGreetingQuery) {
+      if (isArabicOnly) {
+        return "يا هلا بك في ايكيا الإمارات. تسلم يا خوي على تواصلك معنا، ويسعدني وايد أخدمك. كيف أقدر أساعدك اليوم؟";
+      } else if (isMixed) {
+        return "Hej! Welcome to IKEA UAE. يا هلا بك، شلون أقدر أساعدك اليوم؟ How can I help you today?";
+      } else {
+        return "Hello! Welcome to IKEA UAE. How may I help you today?";
+      }
     }
 
-    // 11. Mixed Input Default Greetings / Catch-alls
+    // 11. Conversational Fallbacks for active unrecognized inputs (unmatched query mid-call)
+    if (isArabicOnly) {
+      return "أبشر يا خوي، خلني أتحقق من هالموضوع وأشوف لك تفاصيله الحين.";
+    }
+
     if (isMixed) {
-      return "Hej! Welcome to IKEA UAE. يا هلا بك، شلون أقدر أساعدك اليوم؟ How can I help you today?";
+      return "Regarding this, خلني أتحقق لك وأشوف تفاصيله. Let me confirm that for you.";
     }
 
     const isNoQuery = text === 'no' || text.startsWith('no ') || text.includes('no thank') || text.includes('nothing') || text.includes('la shukran') || text.includes('لا شكرا') || text.includes('لا ') || text === 'لا' || text.includes('that\'s all') || text.includes('that\'s it') || text.includes('that is all');
