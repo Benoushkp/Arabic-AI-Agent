@@ -235,9 +235,9 @@ export default function PhoneSimulator({ onCallFinished }) {
       if (langPref === 'english') {
         replyText = "Hello! Welcome to IKEA UAE. How may I help you today?";
       } else if (langPref === 'arabic') {
-        replyText = "مرحباً! أهلاً بك في ايكيا الإمارات. كيف يمكنني مساعدتك اليوم؟";
+        replyText = "يا هلا بك في ايكيا الإمارات، شلون أقدر أساعدك اليوم؟";
       } else {
-        replyText = "Hello! Welcome to IKEA UAE. مرحباً! أهلاً بك في ايكيا الإمارات. How may I help you today?";
+        replyText = "Hello! Welcome to IKEA UAE. يا هلا بك في ايكيا الإمارات، شلون أقدر أساعدك اليوم؟";
       }
     } else {
       setIsThinking(true);
@@ -393,11 +393,11 @@ export default function PhoneSimulator({ onCallFinished }) {
           setCallState('connected');
           // Add greeting, then send scenario
           const langPref = localStorage.getItem('ikea_language_preference') || 'bilingual';
-          let welcomeGreeting = 'Hello! Welcome to IKEA UAE. مرحباً! أهلاً بك في ايكيا الإمارات. How may I help you today?';
+          let welcomeGreeting = 'Hello! Welcome to IKEA UAE. يا هلا بك في ايكيا الإمارات، شلون أقدر أساعدك اليوم؟';
           if (langPref === 'english') {
             welcomeGreeting = 'Hello! Welcome to IKEA UAE. How may I help you today?';
           } else if (langPref === 'arabic') {
-            welcomeGreeting = 'مرحباً! أهلاً بك في ايكيا الإمارات. كيف يمكنني مساعدتك اليوم؟';
+            welcomeGreeting = 'يا هلا بك في ايكيا الإمارات، شلون أقدر أساعدك اليوم؟';
           }
           setTranscript([{ sender: 'agent', text: welcomeGreeting }]);
           setTimeout(() => {

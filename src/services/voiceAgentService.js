@@ -428,7 +428,7 @@ class VoiceAgentService {
     if (isFrustrated) {
       // If the response already contains empathy or complaint handling, do not prepend extra empathy
       if (reply.includes("sorry this happened") || reply.includes("lodge a complaint") || 
-          reply.includes("آسف جداً") || reply.includes("تقديم شكوى") || 
+          reply.includes("متأسف") || reply.includes("شكوى") || 
           reply.includes("understand your frustration")) {
         return reply;
       }
@@ -440,9 +440,9 @@ class VoiceAgentService {
       
       let empathyPrefix = "";
       if (isArabicOnly) {
-        empathyPrefix = "أنا آسف جداً على هذا الموقف، وسأبذل كل جهدي لمساعدتك. أفهم تماماً ما تشعر به، ودعنا نحل هذا معاً. ";
+        empathyPrefix = "والله جداً متأسف على هالشي، ولا تشيل هم، أنا هنا عشان أساعدك وبنسوي كل اللي نقدر عليه عشان نحل الموضوع سوا. ";
       } else if (isMixed) {
-        empathyPrefix = "I completely understand your frustration, and I'm really sorry this happened. سأبذل قصارى جهدي لمساعدتك وحل المشكلة. ";
+        empathyPrefix = "I completely understand your frustration, and I'm really sorry this happened. وبسوي كل اللي أقدر عليه عشان أساعدك وأحل المشكلة. ";
       } else {
         empathyPrefix = "I completely understand your frustration, and I'm really sorry this happened. I'd like to help you resolve this. ";
       }
@@ -510,49 +510,49 @@ class VoiceAgentService {
     // 1. Complaints
     // Check if the user has already lodged a complaint in this call session
     const hasAlreadyOfferedHelp = this.history.some(msg => 
-      msg.role === 'model' && (msg.content.includes("I'd like to help resolve this") || msg.content.includes("أود المساعدة في حل"))
+      msg.role === 'model' && (msg.content.includes("I'd like to help resolve this") || msg.content.includes("أبشر بعزك") || msg.content.includes("أخدمك"))
     );
 
     if (isComplaintQuery) {
       // Escalation trigger: if this is a follow-up complaint or they explicitly ask to connect/transfer
       if (hasAlreadyOfferedHelp || text.includes('specialist') || text.includes('agent') || text.includes('human') || text.includes('manager') || text.includes('connect') || text.includes('transfer') || text.includes('تحدث') || text.includes('مشرف') || text.includes('شخص') || text.includes('تحويل')) {
         if (isArabicOnly) {
-          return "أفهم تماماً. سأقوم بتحويلك الآن إلى أحد المختصين لمتابعة وتولي هذا الأمر لمساعدتك شخصياً.";
+          return "أبشر بعزك، الحين بحولك للمختص عشان يتابع الموضوع معك ويخلصه لك بنفسه.";
         } else if (isMixed) {
-          return "أفهم ذلك تماماً. I'm going to connect you with a specialist who can take care of this personally.";
+          return "أبشر بعزك. I'm going to connect you with a specialist who can take care of this personally.";
         } else {
           return "I completely understand. I'm going to connect you with a specialist who can take care of this personally.";
         }
       }
 
       if (isArabicOnly) {
-        return "أفهم تماماً أنك ترغب في تقديم شكوى بشأن تجربتك. أنا آسف جداً على هذا الموقف. أفهم تماماً ما تشعر به. أود المساعدة في حل هذا. هل يمكنك مشاركة تفاصيل ما حدث لكي أتمكن من مساعدتك؟";
+        return "ولا يهمك، واضح لي إنك تبي تقدم شكوى على اللي صار. أنا وايد متأسف على هالشي وأفهمك تماماً. الحين بساعدك، ممكن بس تقولي شو اللي صار بالضبط عشان أقدر أخدمك؟";
       } else if (isMixed) {
-        return "I understand you would like to lodge a complaint. أنا آسف جداً على هذا الموقف. I completely understand. أود المساعدة في حل هذا. Could you please share the details of your issue?";
+        return "I understand you would like to lodge a complaint. أنا وايد متأسف على هالشي. I completely understand. الحين بساعدك. Could you please share the details of your issue?";
       } else {
         return "I understand you would like to lodge a complaint regarding your experience. I'm really sorry this happened. I completely understand. I'd like to help resolve this. Could you please share the details of your issue?";
       }
     }
 
-    // 2. Returns query (365 days with receipt, 180 without)
+    // 2. Returns query (90 days standard, 120 days for Family)
     if (isReturnQuery) {
       if (isArabicOnly) {
-        return "أرى أن لديك استفسار بخصوص سياسة الاسترجاع. سياسة الاسترجاع لدينا مرنة للغاية. يمكنك إرجاع المنتجات خلال 365 يوماً إذا كان لديك الإيصال، أو خلال 180 يوماً إذا لم يكن لديك الإيصال. هل ترغب في معرفة أقرب متجر لك؟";
+        return "فهمت إنك تسأل عن سياسة الاسترجاع. الموضوع وايد سهل، بخصوص الاسترجاع تقدر ترجع المنتجات خلال 90 يوم إذا كانت مغلفة وبحالتها الأصلية ومعاك الفاتورة. وأعضاء عائلة ايكيا لهم 120 يوم. تبي أدليك على أقرب فرع لك؟";
       } else if (isMixed) {
-        return "I see you are asking about returns. يمكنك إرجاع المنتجات خلال 365 يوماً إذا كان لديك الإيصال، أو خلال 180 يوماً إذا لم يكن لديك الإيصال. Would you like me to find the nearest store for you؟";
+        return "I see you are asking about returns. تقدر ترجع المنتجات خلال 90 يوم إذا مغلفة وبحالتها ومعاك الفاتورة، ولأعضاء عائلة ايكيا 120 يوم. Would you like me to find the nearest store for you؟";
       } else {
-        return "I see you are asking about returns. You can return products within 365 days of purchase if you have the receipt. If you do not have the receipt, returns are accepted within 180 days. Would you like me to find the nearest store for you?";
+        return "I see you are asking about returns. You can return unopened products in their original packaging within 90 days of purchase with the receipt. IKEA Family members enjoy an extended window of 120 days. Would you like me to find the nearest store for you?";
       }
     }
 
     // 3. Exchanges query
     if (isExchangeQuery) {
       if (isArabicOnly) {
-        return "أفهم أنك ترغب في استبدال منتجك. يمكنك استبدال أي منتج خلال 365 يوماً إذا كان لديك الإيصال، أو خلال 180 يوماً إذا لم يكن لديك الإيصال. هل ترغب في معرفة مواقع متاجرنا؟";
+        return "تمام، تبي تسوي استبدال للمنتج. تقدر تستبدل المنتجات خلال 90 يوم إذا كانت مغلفة وبحالتها ومعاك الفاتورة، ولأعضاء عائلة ايكيا معاهم 120 يوم. تحب تشوف مواقع فروعنا؟";
       } else if (isMixed) {
-        return "I understand you want to exchange a product. يمكنك استبدال المنتجات خلال 365 يوماً إذا كان لديك الإيصال، أو خلال 180 يوماً بدون إيصال. Would you like to check store locations?";
+        return "I understand you want to exchange a product. تقدر تستبدل المنتجات خلال 90 يوم إذا مغلفة وبحالتها ومعاك الفاتورة، ولأعضاء عائلة ايكيا 120 يوم. Would you like to check store locations?";
       } else {
-        return "I understand you want to exchange a product. You can exchange products within 365 days of purchase if you have the receipt. If you do not have the receipt, exchanges are accepted within 180 days. Would you like me to check store locations for you?";
+        return "I understand you want to exchange a product. You can exchange products within 90 days of purchase (120 days for IKEA Family members) if they are unopened and you have the receipt. Would you like me to check store locations for you?";
       }
     }
 
@@ -578,14 +578,14 @@ class VoiceAgentService {
       if (isArabicOnly) {
         if (orderNum) {
           const formattedOrderNum = `${orderNum.slice(0, 3)} ${orderNum.slice(3, 6)} ${orderNum.slice(6)}`;
-          return `أفهم أنك ترغب في تتبع طلبك. أود تأكيد رقم الطلب ${formattedOrderNum}. حالة طلبك حالياً هي: مجدول للتوصيل والتركيب غداً في دبي بين الساعة 10 صباحاً و 10 مساءً. هل هناك أي شيء آخر يمكنني مساعدتك به اليوم؟`;
+          return `أبشر، الحين أتبع لك طلبك. رقم الطلب المتأكد منه هو ${formattedOrderNum}. حالة الطلب الحين هي: مجدول للتوصيل والتركيب بكرة في دبي بين 10 الصبح و 10 بالليل. في أي شي ثاني أقدر أساعدك فيه يا خوي؟`;
         } else {
-          return "أفهم أنك ترغب في تتبع طلبك. بالتأكيد يمكنني مساعدتك في تتبع توصيله. هل يمكنك تزويدي برقم الطلب المكون من 9 أرقام؟";
+          return "أبشر بعزك، أكيد أقدر أساعدك تتبع طلبك. بس عطني رقم الطلب المكون من 9 أرقام عشان أشوفه لك؟";
         }
       } else if (isMixed) {
         if (orderNum) {
           const formattedOrderNum = `${orderNum.slice(0, 3)} ${orderNum.slice(3, 6)} ${orderNum.slice(6)}`;
-          return `I understand you'd like to track your order. Confirming order number ${formattedOrderNum}. حالة الطلب حالياً هي: مجدول للتوصيل غداً. Is there anything else I can assist you with today؟`;
+          return `I understand you'd like to track your order. Confirming order number ${formattedOrderNum}. حالة الطلب الحين هي: مجدول للتوصيل بكرة. Is there anything else I can assist you with today؟`;
         } else {
           return "I understand you'd like to track your order. هل يمكنني الحصول على رقم الطلب الخاص بك المكون من 9 digits؟";
         }
@@ -610,90 +610,90 @@ class VoiceAgentService {
         productEn = "BILLY Bookcase";
         productAr = "مكتبة بيلي";
         detailsEn = "We have 45 units available in Dubai Festival City, 12 in Jebel Ali, and 28 in Yas Island. It's fully in stock.";
-        detailsAr = "لدينا 45 وحدة متوفرة في دبي فستيفال سيتي، و 12 في جبل علي، و 28 في جزيرة ياس. مخزونها ممتاز.";
+        detailsAr = "عندنا 45 حبة متوفرة في دبي فستيفال سيتي، و 12 في جبل علي، و 28 في جزيرة ياس. المخزون متوفر وممتاز.";
       } else if (text.includes('malm') || text.includes('مالم')) {
-        productEn = "MALM 3-drawer chest";
-        productAr = "خزانة مالم ذات الـ 3 أدراج";
+        productEn = "MALM chest of drawers";
+        productAr = "خزانة مالم";
         detailsEn = "We have 14 units at Jebel Ali and 5 in Ras Al Khaimah, but Dubai Festival City is currently out of stock. We expect a new shipment next Tuesday.";
-        detailsAr = "لدينا 14 وحدة في جبل علي و 5 في رأس الخيمة، وهي غير متوفرة حالياً في دبي فستيفال سيتي. الشحنة الجديدة تصل الثلاثاء القادم.";
+        detailsAr = "عندنا 14 حبة في جبل علي و 5 في رأس الخيمة، بس للأسف مخلصة الحين في دبي فستيفال سيتي. الشحنة اليديدة بتوصل الثلاثاء الجاي.";
       } else if (text.includes('kallax') || text.includes('كالاكس')) {
         productEn = "KALLAX unit";
         productAr = "خزانة كالاكس";
         detailsEn = "We have plenty in stock. There are 35 units at Dubai Festival City, 18 in Jebel Ali, and 22 on Yas Island.";
-        detailsAr = "لدينا مخزون كافٍ. يتوفر 35 وحدة في فستيفال سيتي، و 18 في جبل علي، و 22 في جزيرة ياس.";
+        detailsAr = "المخزون متوفر وكافي، فيه 35 حبة في فستيفال سيتي، و 18 في جبل علي، و 22 في جزيرة ياس.";
       } else if (text.includes('poang') || text.includes('بوانغ')) {
         productEn = "POÄNG Armchair";
         productAr = "كرسي بوانغ بذراعين";
         detailsEn = "We have 24 units in Dubai Festival City, 31 in Jebel Ali, and 19 in Yas Island. It's fully in stock.";
-        detailsAr = "لدينا 24 وحدة متوفرة في دبي فستيفال سيتي، و 31 في جبل علي، و 19 في جزيرة ياس. مخزونها ممتاز.";
+        detailsAr = "عندنا 24 حبة متوفرة في دبي فستيفال سيتي، و 31 في جبل علي، و 19 في جزيرة ياس. مخزونها ممتاز جداً.";
       } else {
         // Strict uncertainty check: never invent stock levels
-        if (isArabicOnly) return "أرى أنك تسأل عن توفر المنتج. دعني أتحقق من ذلك لك.";
-        if (isMixed) return "I see you are asking about product availability. Let me confirm that for you. دعني أتحقق من ذلك لك.";
+        if (isArabicOnly) return "أشوف إنك تسأل عن توفر المنتج، لحظة بس أشوف لك وأتأكد.";
+        if (isMixed) return "I see you are asking about product availability. Let me check that. خلني أشوف لك وأتأكد.";
         return "I see you are asking about product availability. Let me confirm that for you.";
       }
 
       if (isArabicOnly) {
-        return `أرى أنك تسأل عن توفر المنتجات. دعني أتحقق من توفر ${productAr}. نعم، ${detailsAr} هل ترغب في حجز طلب استلام من المتجر؟`;
+        return `تمام، تبي تتأكد من توفر المنتج. خلني أشوف لك ${productAr}. نعم، ${detailsAr} تحب أسوي لك طلب استلام من المعرض (كليك آند كولكت)؟`;
       } else if (isMixed) {
-        return `I see you are asking about product availability. Let me check the stock for ${productEn}. لدينا ${detailsAr} Would you like me to help you book a Click and Collect order for pickup؟`;
+        return `I see you are asking about product availability. Let me check the stock for ${productEn}. عندنا ${detailsAr} Would you like me to help you book a Click and Collect order for pickup؟`;
       } else {
         return `I see you are asking about product availability. Let me check stock for the ${productEn}. Yes. ${detailsEn} Would you like me to help you book a Click and Collect order for it?`;
       }
     }
 
-    // 6. Store details / hours query (Saturday-Thursday 10AM-10PM, Friday 2PM-10PM)
+    // 6. Store details / hours query
     if (isHoursQuery) {
       if (isArabicOnly) {
-        return "أفهم أنك تبحث عن معلومات حول مواقعنا وأوقات عمل المتاجر. متاجرنا في دبي فستيفال سيتي، وجبل علي، وجزيرة ياس أبوظبي، ورأس الخيمة تفتح من السبت إلى الخميس من 10 صباحاً إلى 10 مساءً، ويوم الجمعة من 2 ظهراً إلى 10 مساءً. أي متجر تخطط لزيارته؟";
+        return "فهمت إنك تبي تعرف مواقعنا وأوقات عمل الفروع. فروعنا في دبي فستيفال سيتي، وجبل علي، وجزيرة ياس، ورأس الخيمة أوقات عملها الحين تختلف: دبي فستيفال سيتي يفتح من 10 الصبح لـ 11 بالليل (وإلى 12 بالليل في الويكند)، وجبل علي والياس أوقاتهم مشابهة. أي فرع ودك تزوره عشان أعطيك وقته بالضبط؟";
       } else if (isMixed) {
-        return "I understand you are asking for store locations and opening hours. متاجرنا في دبي فستيفال سيتي، وجبل علي، وجزيرة ياس، ورأس الخيمة تفتح من السبت إلى الخميس من 10 صباحاً إلى 10 مساءً، ويوم الجمعة من 2 ظهراً إلى 10 مساءً. Which store are you visiting؟";
+        return "I understand you are asking for store locations and opening hours. فروعنا في دبي فستيفال سيتي، وجبل علي، والياس تفتح من 10 الصبح لـ 11 بالليل. Which store are you visiting؟";
       } else {
-        return "I understand you are asking for store locations and opening hours. Our stores in Dubai Festival City, Jebel Ali, Yas Island Abu Dhabi, and Ras Al Khaimah are open Saturday to Thursday from 10:00 AM to 10:00 PM, and on Friday from 2:00 PM to 10:00 PM. Which store location would you like directions for?";
+        return "I understand you are asking for store locations and opening hours. Our stores in Dubai Festival City, Jebel Ali, Yas Island Abu Dhabi, and Ras Al Khaimah are open daily. Which store location would you like details for?";
       }
     }
 
-    // 7. Assembly services query (AED 99-299 depending on product)
+    // 7. Assembly services query (starts from 99)
     if (isAssemblyQuery) {
       if (isArabicOnly) {
-        return "أرى أن لديك استفسار بخصوص خدمات التركيب لدينا. رسوم التركيب تتراوح بين 99 درهماً و 299 درهماً حسب المنتج. هل ترغب في أن أتحقق من رسوم تركيب منتج معين لك؟";
+        return "أشوف إنك تسأل عن خدمات التركيب. موضوع التركيب سهل، يبدأ من 99 درهم. وعندنا باقات توصيل وتركيب بـ 144 درهم للطلبات اللي تحت 950 درهم، وبـ 99 درهم للطلبات الكبيرة فوق 950 درهم. تحب أشوف لك رسوم تركيب منتج معين؟";
       } else if (isMixed) {
-        return "I understand you have a question about assembly services. Assembly charges range from AED 99 to AED 299 depending on the product. هل ترغب في أن أتحقق من رسوم تركيب منتج معين؟";
+        return "I understand you have a question about assembly services. Assembly starts at AED 99. وعندنا باقة توصيل وتركيب بـ 144 درهم. هل ترغب في أن أتحقق من رسوم تركيب منتج معين؟";
       } else {
-        return "I understand you have a question about assembly services. Assembly charges range from AED 99 to AED 299 depending on the product. Would you like me to confirm the assembly fee for a specific item?";
+        return "I understand you have a question about assembly services. Assembly charges start at AED 99. We offer combined delivery & assembly packages starting at AED 144. Would you like me to confirm the assembly fee for a specific item?";
       }
     }
 
-    // 8. Delivery services query (Free above 500, 49 below)
+    // 8. Delivery services query
     if (isDeliveryQuery) {
       if (isArabicOnly) {
-        return "أفهم أنك ترغب في الاستفسار عن رسوم التوصيل لدينا. الطلبات التي تزيد عن 500 درهم شحنها مجاني. أما الطلبات الأقل من 500 درهم، تبلغ رسوم توصيلها 49 درهماً. هل لديك استفسار آخر؟";
+        return "تبي تستفسر عن رسوم التوصيل، التوصيل عندنا للإكسسوارات يبدأ من 10 دراهم ويكون مجاني لو طلبك فوق 250 درهم. وللأثاث يبدأ من 45 درهم ويكون مجاني لو طلبك فوق 950 درهم. في أي شي ثاني ودك تستفسر عنه؟";
       } else if (isMixed) {
-        return "I see you have a question about delivery rates. Orders above AED 500 qualify for Free Delivery, والطلبات الأقل من 500 درهم تبلغ رسوم توصيلها 49 درهماً. Does that make sense؟";
+        return "I see you have a question about delivery rates. التوصيل للإكسسوارات من 10 دراهم (مجاني فوق 250)، وللأثاث من 45 درهم (مجاني فوق 950). Does that make sense؟";
       } else {
-        return "I see you have a question about delivery rates. Orders above AED 500 qualify for Free Delivery. For orders below AED 500, there is a delivery charge of AED 49. Is there anything else I can clarify?";
+        return "I see you have a question about delivery rates. Home delivery for accessories starts from AED 10 (free above AED 250) and furniture starts from AED 45 (free above AED 950). Is there anything else I can clarify?";
       }
     }
 
     // 9. IKEA Family Program
     if (isFamilyQuery) {
       if (isArabicOnly) {
-        return "أرى أنك تسأل عن عضوية عائلة ايكيا. الاشتراك في برنامج عائلة ايكيا مجاني تماماً. وهو يمنحك خصومات وعروض حصرية للأعضاء. هل ترغب في معرفة المزيد؟";
+        return "تسأل عن عضوية عائلة ايكيا. الاشتراك مجاني بالكامل يا خوي، ويعطيك خصومات حصرية، وفترة استرجاع 120 يوم، وقهوة أو شاي مجاني بالمعرض. تحب أسجل لك الحين؟";
       } else if (isMixed) {
-        return "I understand you are asking about our IKEA Family membership. الاشتراك في برنامج عائلة ايكيا مجاني تماماً. وهو يمنحك خصومات وعروض حصرية للأعضاء. Would you like to sign up?";
+        return "I understand you are asking about our IKEA Family membership. الاشتراك مجاني بالكامل ويعطيك خصومات حصرية وفترة استرجاع 120 يوم. Would you like to sign up?";
       } else {
-        return "I understand you are asking about our IKEA Family membership. Membership in our IKEA Family program is completely free. It provides exclusive member discounts and offers. Would you like to sign up on our website?";
+        return "I understand you are asking about our IKEA Family membership. Membership in our IKEA Family program is completely free. It provides exclusive discounts, 120-day return windows, and free hot drinks. Would you like to sign up?";
       }
     }
 
     // 10. Arabic Greetings / Input
     if (isArabicOnly) {
-      return "أهلاً بك في ايكيا الإمارات. شكراً لتواصلك معنا، يسعدني مساعدتك. كيف يمكنني مساعدتك اليوم؟";
+      return "يا هلا بك في ايكيا الإمارات. تسلم يا خوي على تواصلك معنا، ويسعدني وايد أخدمك. كيف أقدر أساعدك اليوم؟";
     }
 
     // 11. Mixed Input Default Greetings / Catch-alls
     if (isMixed) {
-      return "Hej! Welcome to IKEA UAE. كيف يمكنني مساعدتك اليوم؟ How can I help you today?";
+      return "Hej! Welcome to IKEA UAE. يا هلا بك، شلون أقدر أساعدك اليوم؟ How can I help you today?";
     }
 
     const isNoQuery = text === 'no' || text.startsWith('no ') || text.includes('no thank') || text.includes('nothing') || text.includes('la shukran') || text.includes('لا شكرا') || text.includes('لا ') || text === 'لا' || text.includes('that\'s all') || text.includes('that\'s it') || text.includes('that is all');
@@ -702,13 +702,13 @@ class VoiceAgentService {
     const lastAgentText = lastAgentMessage ? lastAgentMessage.content : '';
 
     const wasAskedIfAnythingElse = lastAgentText.includes("Is there anything else I can help you with today?") || 
-                                   lastAgentText.includes("هل هناك أي شيء آخر يمكنني مساعدتك به اليوم؟") || 
+                                   lastAgentText.includes("أقدر أساعدك فيه") || 
                                    lastAgentText.includes("Is there anything else I can assist you with today?");
 
-    // 12. No Query (handling the "If no" branch of closing check)
+    // 12. No Query
     if (isNoQuery && wasAskedIfAnythingElse) {
       if (isArabicOnly) {
-        return "شكراً جزيلاً لتواصلك مع ايكيا الإمارات ونأمل أن تكون مشكلتك قد تم حلها بالكامل. أتمنى لك يوماً رائعاً وسعيداً! مع السلامة.";
+        return "تسلم يا خوي ومشكور وايد على اتصالك بايكيا الإمارات، وإن شاء الله أكون فدتك اليوم. أتمنى لك يوم سعيد وحياك الله بأي وقت، مع السلامة!";
       } else if (isMixed) {
         return "شكراً لك. Thank you warmly for calling IKEA UAE. Wish you a wonderful day! Hej då!";
       } else {
@@ -719,9 +719,9 @@ class VoiceAgentService {
     // 13. Closings / Thanks (Confirm issue resolved, ask "Is there anything else...")
     if (isClosingQuery || isNoQuery) {
       if (isArabicOnly) {
-        return "أود التأكد أولاً من أن مشكلتك قد تم حلها بالكامل. هل هناك أي شيء آخر يمكنني مساعدتك به اليوم؟";
+        return "بس حاب أتأكد أول شي إن موضوعك انحل بالكامل. في أي شي ثاني أقدر أساعدك فيه اليوم؟";
       } else if (isMixed) {
-        return "I want to confirm that your issue has been resolved. هل هناك أي شيء آخر يمكنني مساعدتك به؟ Is there anything else I can help you with today?";
+        return "I want to confirm that your issue has been resolved. في أي شي ثاني أقدر أساعدك فيه اليوم؟ Is there anything else I can help you with today?";
       } else {
         return "I want to confirm that your issue has been resolved. Is there anything else I can help you with today?";
       }
