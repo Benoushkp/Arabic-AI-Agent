@@ -10,6 +10,11 @@ export default function Settings({ theme, toggleTheme }) {
   const [langPreference, setLangPreference] = useState(localStorage.getItem('ikea_language_preference') || 'bilingual');
   const [bargeIn, setBargeIn] = useState(localStorage.getItem('ikea_barge_in') !== 'false');
   const [apiKey, setApiKey] = useState(localStorage.getItem('ikea_gemini_api_key') || '');
+  const [ttsEngine, setTtsEngine] = useState(localStorage.getItem('ikea_tts_engine') || 'browser');
+  const [openaiApiKey, setOpenaiApiKey] = useState(localStorage.getItem('ikea_openai_api_key') || '');
+  const [openaiVoice, setOpenaiVoice] = useState(localStorage.getItem('ikea_openai_voice') || 'shimmer');
+  const [elevenlabsApiKey, setElevenlabsApiKey] = useState(localStorage.getItem('ikea_elevenlabs_api_key') || '');
+  const [elevenlabsVoiceId, setElevenlabsVoiceId] = useState(localStorage.getItem('ikea_elevenlabs_voice_id') || '21m00Tcm4TlvDq8ikWAM');
 
   useEffect(() => {
     // Load voices
@@ -51,6 +56,11 @@ export default function Settings({ theme, toggleTheme }) {
     localStorage.setItem('ikea_language_preference', langPreference);
     localStorage.setItem('ikea_barge_in', bargeIn);
     localStorage.setItem('ikea_gemini_api_key', apiKey);
+    localStorage.setItem('ikea_tts_engine', ttsEngine);
+    localStorage.setItem('ikea_openai_api_key', openaiApiKey);
+    localStorage.setItem('ikea_openai_voice', openaiVoice);
+    localStorage.setItem('ikea_elevenlabs_api_key', elevenlabsApiKey);
+    localStorage.setItem('ikea_elevenlabs_voice_id', elevenlabsVoiceId);
     voiceAgent.setApiKey(apiKey);
     
     setSavedStatus(true);
@@ -138,6 +148,89 @@ export default function Settings({ theme, toggleTheme }) {
               The application filters available voices to English and Arabic to sound appropriate for IKEA UAE.
             </p>
           </div>
+        </div>
+
+        <div className="card">
+          <h3 className="list-item-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+            <Volume2 size={18} style={{ color: 'var(--ikea-blue-light)' }} />
+            Vocal Synthesizer Engine (Text-to-Speech)
+          </h3>
+          <p className="form-label" style={{ fontSize: '0.75rem', marginTop: '-0.5rem', marginBottom: '1rem', color: 'var(--text-secondary)' }}>
+            Choose between standard local browser text-to-speech or premium human-like AI voice APIs.
+          </p>
+
+          <div className="form-group">
+            <label className="form-label">TTS Engine</label>
+            <select
+              className="form-input"
+              value={ttsEngine}
+              onChange={(e) => setTtsEngine(e.target.value)}
+            >
+              <option value="browser">Local Browser SpeechSynthesis (Default)</option>
+              <option value="openai">OpenAI TTS API (Highly Realistic Human-like)</option>
+              <option value="elevenlabs">ElevenLabs TTS API (Ultra Realistic / Emotional)</option>
+            </select>
+          </div>
+
+          {ttsEngine === 'openai' && (
+            <div style={{ marginTop: '1rem', borderLeft: '3px solid var(--ikea-blue)', paddingLeft: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label">OpenAI API Key</label>
+                <input
+                  type="password"
+                  className="form-input"
+                  value={openaiApiKey}
+                  onChange={(e) => setOpenaiApiKey(e.target.value)}
+                  placeholder="sk-..."
+                  style={{ letterSpacing: openaiApiKey ? '0.2rem' : 'normal' }}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">OpenAI Voice Name</label>
+                <select
+                  className="form-input"
+                  value={openaiVoice}
+                  onChange={(e) => setOpenaiVoice(e.target.value)}
+                >
+                  <option value="shimmer">Shimmer (Female - Friendly & Conversational)</option>
+                  <option value="nova">Nova (Female - Energetic & Clear)</option>
+                  <option value="alloy">Alloy (Neutral - Professional)</option>
+                  <option value="echo">Echo (Male - Calm)</option>
+                  <option value="fable">Fable (Neutral - Narrative)</option>
+                  <option value="onyx">Onyx (Male - Deep & Warm)</option>
+                </select>
+              </div>
+            </div>
+          )}
+
+          {ttsEngine === 'elevenlabs' && (
+            <div style={{ marginTop: '1rem', borderLeft: '3px solid var(--ikea-yellow)', paddingLeft: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label">ElevenLabs API Key</label>
+                <input
+                  type="password"
+                  className="form-input"
+                  value={elevenlabsApiKey}
+                  onChange={(e) => setElevenlabsApiKey(e.target.value)}
+                  placeholder="Paste ElevenLabs key..."
+                  style={{ letterSpacing: elevenlabsApiKey ? '0.2rem' : 'normal' }}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">ElevenLabs Voice ID</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={elevenlabsVoiceId}
+                  onChange={(e) => setElevenlabsVoiceId(e.target.value)}
+                  placeholder="21m00Tcm4TlvDq8ikWAM"
+                />
+                <p className="form-label" style={{ fontSize: '0.7rem', marginTop: '0.25rem', color: 'var(--text-secondary)' }}>
+                  Default is <code>21m00Tcm4TlvDq8ikWAM</code> (Rachel). You can use any multilingual-compatible ElevenLabs Voice ID (custom or pre-made).
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="card">

@@ -5,6 +5,7 @@ class VoiceAgentService {
     this.recognition = null;
     this.synthesis = window.speechSynthesis;
     this.activeUtterance = null;
+    this.activeAudio = null;
     this.isListening = false;
     this.isSpeaking = false;
     this.isThinking = false;
@@ -173,14 +174,8 @@ class VoiceAgentService {
     return segments.filter(s => s.text.length > 0);
   }
 
-  // Speak text using SpeechSynthesis
+  // Speak text using SpeechSynthesis or Premium API TTS
   speak(text, onStart, onEnd, onBoundary) {
-    if (!this.synthesis) {
-      console.warn('Speech synthesis not supported.');
-      onEnd();
-      return;
-    }
-
     this.stopSpeaking();
     const bargeIn = localStorage.getItem('ikea_barge_in') !== 'false';
     if (!bargeIn) {
@@ -202,8 +197,37 @@ class VoiceAgentService {
       return;
     }
 
+    const ttsEngine = localStorage.getItem('ikea_tts_engine') || 'browser';
+    const openaiKey = localStorage.getItem('ikea_openai_api_key') || '';
+    const elevenlabsKey = localStorage.getItem('ikea_elevenlabs_api_key') || '';
+
+    if (ttsEngine === 'openai' && openaiKey) {
+      this.playOpenAITTS(speakableText, openaiKey, onStart, onEnd).catch(err => {
+        console.error("OpenAI TTS failed, falling back to browser.", err);
+        this.speakBrowser(speakableText, segments, onStart, onEnd, onBoundary);
+      });
+      return;
+    } else if (ttsEngine === 'elevenlabs' && elevenlabsKey) {
+      this.playElevenLabsTTS(speakableText, elevenlabsKey, onStart, onEnd).catch(err => {
+        console.error("ElevenLabs TTS failed, falling back to browser.", err);
+        this.speakBrowser(speakableText, segments, onStart, onEnd, onBoundary);
+      });
+      return;
+    }
+
+    this.speakBrowser(speakableText, segments, onStart, onEnd, onBoundary);
+  }
+
+  // Browser Speak (Default fallback)
+  speakBrowser(speakableText, segments, onStart, onEnd, onBoundary) {
+    if (!this.synthesis) {
+      console.warn('Speech synthesis not supported.');
+      onEnd();
+      return;
+    }
+
     // Failsafe timeout to prevent speech synthesis from getting stuck (Chrome TTS bug workaround)
-    const textDurationEstimate = (speakableText.length * 150) + 4000; // 150ms per character + 4s buffer
+    const textDurationEstimate = (speakableText.length * 150) + 4000;
     this.failsafeTimeout = setTimeout(() => {
       console.warn("SpeechSynthesis failsafe triggered. Forcing speech end to prevent lockup.");
       this.stopSpeaking();
@@ -218,7 +242,6 @@ class VoiceAgentService {
       
       let selectedVoice = null;
       if (segment.isArabic) {
-        // Find a female Arabic voice first (preferring Laila, Mariam, Hoda, Zeina)
         const arVoices = voices.filter(v => v.lang.startsWith('ar'));
         selectedVoice = arVoices.find(v => {
           const name = v.name.toLowerCase();
@@ -232,7 +255,6 @@ class VoiceAgentService {
           return !name.includes('maged') && !name.includes('tarik') && !name.includes('tarif');
         }) || arVoices[0];
       } else {
-        // Find preferred or fallback English voice
         selectedVoice = preferredVoice || 
                         voices.find(v => v.lang.startsWith('en-GB')) || 
                         voices.find(v => v.lang.startsWith('en-US')) ||
@@ -244,7 +266,6 @@ class VoiceAgentService {
         utterance.lang = selectedVoice.lang;
       }
 
-      // Configure rate and pitch
       if (segment.text.includes("understand your frustration") || 
           segment.text.includes("sorry this happened") || 
           segment.text.includes("assist you") ||
@@ -258,7 +279,6 @@ class VoiceAgentService {
       }
       utterance.pitch = selectedVoice?.lang.startsWith('ar') ? 1.0 : 1.05;
 
-      // Handle callbacks
       if (index === 0) {
         utterance.onstart = () => {
           this.activeUtterance = utterance;
@@ -298,7 +318,6 @@ class VoiceAgentService {
         };
       }
 
-      // Syllable / word animations boundary callback
       if (onBoundary) {
         utterance.onboundary = (event) => {
           if (event.name === 'word') {
@@ -311,6 +330,89 @@ class VoiceAgentService {
     });
   }
 
+  // Premium OpenAI TTS caller
+  async playOpenAITTS(text, apiKey, onStart, onEnd) {
+    onStart();
+    const voice = localStorage.getItem('ikea_openai_voice') || 'shimmer';
+    const response = await fetch('https://api.openai.com/v1/audio/speech', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'tts-1',
+        input: text,
+        voice: voice,
+        response_format: 'mp3'
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI TTS responded with status ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    this.playAudioBlob(blob, onEnd);
+  }
+
+  // Premium ElevenLabs TTS caller
+  async playElevenLabsTTS(text, apiKey, onStart, onEnd) {
+    onStart();
+    const voiceId = localStorage.getItem('ikea_elevenlabs_voice_id') || '21m00Tcm4TlvDq8ikWAM';
+    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        text: text,
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.75
+        }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`ElevenLabs TTS responded with status ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    this.playAudioBlob(blob, onEnd);
+  }
+
+  // Audio blob player with cancel hooks
+  playAudioBlob(blob, onEnd) {
+    if (!this.isSpeaking) return;
+
+    const audioUrl = URL.createObjectURL(blob);
+    const audio = new Audio(audioUrl);
+    this.activeAudio = audio;
+    
+    audio.onended = () => {
+      URL.revokeObjectURL(audioUrl);
+      this.isSpeaking = false;
+      this.activeAudio = null;
+      onEnd();
+    };
+    
+    audio.onerror = (e) => {
+      console.error("Audio playback error:", e);
+      URL.revokeObjectURL(audioUrl);
+      this.isSpeaking = false;
+      this.activeAudio = null;
+      onEnd();
+    };
+
+    audio.play().catch(err => {
+      console.error("Audio play failed:", err);
+      onEnd();
+    });
+  }
+
   // Cancel any active speech
   stopSpeaking() {
     if (this.failsafeTimeout) {
@@ -319,6 +421,13 @@ class VoiceAgentService {
     }
     if (this.synthesis) {
       this.synthesis.cancel();
+    }
+    if (this.activeAudio) {
+      this.activeAudio.pause();
+      this.activeAudio.onended = null;
+      this.activeAudio.onerror = null;
+      this.activeAudio.src = '';
+      this.activeAudio = null;
     }
     this.activeUtterance = null;
     this.isSpeaking = false;
