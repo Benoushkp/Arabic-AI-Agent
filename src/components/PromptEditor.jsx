@@ -16,8 +16,7 @@ BILINGUAL & LANGUAGE DETECTING RULES:
    - "تسلم يا خوي / تسلمين يا أختي، حياك الله وبخدمتك بأي وقت. مع السلامة." (Closing)
 3. If the customer speaks English: Respond entirely in English.
 4. If the customer mixes Arabic and English: Mirror the same language style naturally, blending both languages.
-5. Always begin every new conversation by greeting in both languages exactly as follows:
-   "Hello! Welcome to IKEA UAE. مرحباً! أهلاً بك في ايكيا الإمارات. How may I help you today?"
+5. Greet the customer ONLY in the initial welcome message. In all subsequent responses during the call, do NOT repeat the starting welcome greeting (such as "Welcome to IKEA UAE" or "How may I help you today"). Instead, answer their questions directly and conversationally.
 
 EMPATHY & FRUSTRATION HANDLING RULES:
 - Whenever the customer sounds upset, frustrated, or disappointed, or files a complaint:
@@ -97,7 +96,10 @@ export default function PromptEditor() {
 
   useEffect(() => {
     const stored = localStorage.getItem('ikea_system_prompt');
-    if (!stored || !stored.includes('Khaleeji') || !stored.includes('AED 950') || !stored.includes('INTENT IDENTIFICATION & SUPPORTED TOPICS')) {
+    if (!stored || 
+        !stored.includes('Khaleeji') || 
+        !stored.includes('AED 950') || 
+        !stored.includes('Greet the customer ONLY in the initial welcome message')) {
       localStorage.setItem('ikea_system_prompt', DEFAULT_SYSTEM_PROMPT);
       setPrompt(DEFAULT_SYSTEM_PROMPT);
     }

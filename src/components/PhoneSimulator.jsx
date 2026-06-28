@@ -252,6 +252,26 @@ export default function PhoneSimulator({ onCallFinished }) {
       }
     }
 
+    // Intercept action commands
+    if (replyText.includes('[ACTION_UPDATE_ADDRESS:')) {
+      const match = replyText.match(/\[ACTION_UPDATE_ADDRESS:\s*(.*?)\]/);
+      if (match && match[1]) {
+        window.dispatchEvent(new CustomEvent('ikea_update_crm', { detail: { address: match[1] } }));
+      }
+    }
+    if (replyText.includes('[ACTION_CANCEL_ORDER]')) {
+      window.dispatchEvent(new CustomEvent('ikea_update_crm', { detail: { status: 'Cancelled' } }));
+    }
+    if (replyText.includes('[ACTION_RESCHEDULE_ORDER:')) {
+      const match = replyText.match(/\[ACTION_RESCHEDULE_ORDER:\s*(.*?)\]/);
+      if (match && match[1]) {
+        window.dispatchEvent(new CustomEvent('ikea_update_crm', { detail: { deliveryDate: match[1], status: 'Rescheduled' } }));
+      }
+    }
+
+    // Clean replyText by removing action tags
+    replyText = replyText.replace(/\[ACTION_.*?\]/g, '').trim();
+
     // Append to transcript
     setTranscript(prev => [...prev, { sender: 'agent', text: replyText }]);
 

@@ -4,10 +4,11 @@ import Analytics from './components/Analytics';
 import KnowledgeBase from './components/KnowledgeBase';
 import PromptEditor from './components/PromptEditor';
 import Settings from './components/Settings';
-import { BarChart3, Database, UserCheck, Settings as SettingsIcon, Sun, Moon } from 'lucide-react';
+import CrmPanel from './components/CrmPanel';
+import { BarChart3, Database, UserCheck, Settings as SettingsIcon, Sun, Moon, ShieldAlert } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('analytics'); // analytics, knowledge, prompt, settings
+  const [activeTab, setActiveTab] = useState('analytics'); // analytics, knowledge, prompt, settings, crm
   const [theme, setTheme] = useState(localStorage.getItem('ikea_theme') || 'dark');
   const [callHistory, setCallHistory] = useState([]);
 
@@ -15,6 +16,24 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('ikea_theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    // Prompt migration check: Upgrade stored system prompt to disable repeated greetings
+    const storedPrompt = localStorage.getItem('ikea_system_prompt');
+    if (storedPrompt && storedPrompt.includes("Always begin every new conversation by greeting")) {
+      const targetStr = `5. Always begin every new conversation by greeting in both languages exactly as follows:\n   "Hello! Welcome to IKEA UAE. مرحباً! أهلاً بك في ايكيا الإمارات. How may I help you today?"`;
+      const replacementStr = `5. Greet the customer ONLY in the initial welcome message. In all subsequent responses during the call, do NOT repeat the starting welcome greeting (such as "Welcome to IKEA UAE" or "How may I help you today"). Instead, answer their questions directly and conversationally.`;
+      
+      let updatedPrompt = storedPrompt.replace(targetStr, replacementStr);
+      if (updatedPrompt === storedPrompt) {
+        updatedPrompt = storedPrompt.replace(
+          /5\.\s*Always\s*begin\s*every\s*new\s*conversation\s*by\s*greeting[\s\S]*?help\s*you\s*today\?\"/i,
+          `5. Greet the customer ONLY in the initial welcome message. In all subsequent responses during the call, do NOT repeat the starting welcome greeting (such as "Welcome to IKEA UAE" or "How may I help you today"). Instead, answer their questions directly and conversationally.`
+        );
+      }
+      localStorage.setItem('ikea_system_prompt', updatedPrompt);
+    }
+  }, []);
 
   const toggleTheme = () => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
@@ -86,6 +105,13 @@ export default function App() {
           >
             <Database size={16} /> Knowledge Base
           </button>
+
+          <button 
+            onClick={() => setActiveTab('crm')} 
+            className={`tab-btn ${activeTab === 'crm' ? 'active' : ''}`}
+          >
+            <ShieldAlert size={16} /> Live CRM & Actions
+          </button>
           
           <button 
             onClick={() => setActiveTab('prompt')} 
@@ -106,6 +132,7 @@ export default function App() {
         <div className="dashboard-content">
           {activeTab === 'analytics' && <Analytics customCallHistory={callHistory} />}
           {activeTab === 'knowledge' && <KnowledgeBase />}
+          {activeTab === 'crm' && <CrmPanel />}
           {activeTab === 'prompt' && <PromptEditor />}
           {activeTab === 'settings' && <Settings theme={theme} toggleTheme={toggleTheme} />}
         </div>

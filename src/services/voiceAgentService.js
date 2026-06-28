@@ -648,7 +648,13 @@ class VoiceAgentService {
     }
 
     // Inject knowledge base directly into the system instructions
-    const fullSystemPrompt = `${systemPrompt}${languageRule}\n\n=== IKEA UAE KNOWLEDGE BASE ===\n${JSON.stringify(knowledgeBaseData, null, 2)}`;
+    const crmGuidelines = `\n\n=== CRM ACTION SYSTEM (CRITICAL) ===
+You have simulated agentic tool capabilities for order number 984029103. If the user explicitly requests one of these actions and you confirm it, you MUST append the exact tag at the very end of your final response (including brackets):
+- To update delivery address: [ACTION_UPDATE_ADDRESS: New City name (e.g. Abu Dhabi, Ras Al Khaimah, Sharjah, Dubai)]
+- To cancel the order: [ACTION_CANCEL_ORDER]
+- To reschedule delivery date: [ACTION_RESCHEDULE_ORDER: Friday, July 5]`;
+
+    const fullSystemPrompt = `${systemPrompt}${languageRule}${crmGuidelines}\n\n=== IKEA UAE KNOWLEDGE BASE ===\n${JSON.stringify(knowledgeBaseData, null, 2)}`;
     
     // Format contents history for Gemini API
     const contents = chatHistory.map(msg => ({
@@ -789,6 +795,47 @@ class VoiceAgentService {
     const hasAlreadyOfferedHelp = this.history.some(msg => 
       msg.role === 'model' && (msg.content.includes("I'd like to help resolve this") || msg.content.includes("أبشر بعزك") || msg.content.includes("أخدمك"))
     );
+
+    // Agentic tool actions (Cancellation, Address update, Reschedule)
+    const isCancelQuery = text.includes('cancel') || text.includes('إلغاء') || text.includes('كنسل');
+    const isAddressQuery = (text.includes('address') || text.includes('location') || text.includes('عنوان') || text.includes('تغيير') || text.includes('تعديل')) && (text.includes('change') || text.includes('update') || text.includes('تغيير') || text.includes('تعديل') || text.includes('أبوظبي') || text.includes('دبي') || text.includes('الخيمة') || text.includes('أبو ظبي'));
+    const isRescheduleQuery = text.includes('reschedule') || text.includes('change date') || text.includes('تغيير تاريخ') || text.includes('تأجيل');
+
+    if (isCancelQuery) {
+      if (isArabicOnly) {
+        return "فهمت إنك تبي تكنسل طلبك. تم إلغاء الطلب رقم 984029103 بنجاح يا خوي، وبيرجع لك المبلغ كامل على بطاقتك خلال 3 أيام عمل. [ACTION_CANCEL_ORDER]";
+      } else if (isMixed) {
+        return "I understand you want to cancel your order. تم إلغاء طلبك رقم 984029103 بنجاح. Your refund will be processed within 3 business days. [ACTION_CANCEL_ORDER]";
+      } else {
+        return "I understand you would like to cancel your order. The order number 984029103 has been cancelled successfully, and your refund will be processed back to your payment method. [ACTION_CANCEL_ORDER]";
+      }
+    }
+
+    if (isAddressQuery) {
+      let newCity = "Abu Dhabi, UAE";
+      if (text.includes('abu dhabi') || text.includes('أبوظبي') || text.includes('ابوظبي') || text.includes('أبو ظبي')) newCity = "Abu Dhabi, UAE";
+      else if (text.includes('ras al') || text.includes('رأس الخيمة') || text.includes('راس الخيمة')) newCity = "Ras Al Khaimah, UAE";
+      else if (text.includes('sharjah') || text.includes('الشارقة') || text.includes('شارقة')) newCity = "Sharjah, UAE";
+      else if (text.includes('dubai') || text.includes('دبي')) newCity = "Dubai, UAE";
+      
+      if (isArabicOnly) {
+        return `أبشر يا خوي، تم تحديث عنوان التوصيل لطلبك إلى ${newCity} بنجاح. [ACTION_UPDATE_ADDRESS: ${newCity}]`;
+      } else if (isMixed) {
+        return `I have updated your order delivery address to ${newCity} as requested. تم التحديث بنجاح. [ACTION_UPDATE_ADDRESS: ${newCity}]`;
+      } else {
+        return `Certainly, I have updated your order delivery address to ${newCity} successfully. [ACTION_UPDATE_ADDRESS: ${newCity}]`;
+      }
+    }
+
+    if (isRescheduleQuery) {
+      if (isArabicOnly) {
+        return "أبشر يا خوي، تم تعديل موعد التوصيل والتركيب ليكون يوم الجمعة القادم 5 يوليو. [ACTION_RESCHEDULE_ORDER: Friday, July 5]";
+      } else if (isMixed) {
+        return "I have rescheduled your delivery to next Friday, July 5. تم تعديل الموعد بنجاح. [ACTION_RESCHEDULE_ORDER: Friday, July 5]";
+      } else {
+        return "Certainly, I have rescheduled your delivery & assembly to next Friday, July 5. [ACTION_RESCHEDULE_ORDER: Friday, July 5]";
+      }
+    }
 
     if (isComplaintQuery) {
       // Escalation trigger: if this is a follow-up complaint or they explicitly ask to connect/transfer
