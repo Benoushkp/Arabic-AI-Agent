@@ -201,7 +201,13 @@ class VoiceAgentService {
     const openaiKey = localStorage.getItem('ikea_openai_api_key') || '';
     const elevenlabsKey = localStorage.getItem('ikea_elevenlabs_api_key') || '';
 
-    if (ttsEngine === 'openai' && openaiKey) {
+    if (ttsEngine === 'puter') {
+      this.playPuterTTS(speakableText, onStart, onEnd).catch(err => {
+        console.error("Puter TTS failed, falling back to browser.", err);
+        this.speakBrowser(speakableText, segments, onStart, onEnd, onBoundary);
+      });
+      return;
+    } else if (ttsEngine === 'openai' && openaiKey) {
       this.playOpenAITTS(speakableText, openaiKey, onStart, onEnd).catch(err => {
         console.error("OpenAI TTS failed, falling back to browser.", err);
         this.speakBrowser(speakableText, segments, onStart, onEnd, onBoundary);
@@ -328,6 +334,73 @@ class VoiceAgentService {
 
       this.synthesis.speak(utterance);
     });
+  }
+
+  // Puter Free TTS caller
+  async playPuterTTS(text, onStart, onEnd) {
+    onStart();
+    if (typeof window === 'undefined' || !window.puter || !window.puter.ai) {
+      throw new Error("Puter.js script is not initialized on window.");
+    }
+
+    const provider = localStorage.getItem('ikea_puter_provider') || 'openai';
+    const voice = localStorage.getItem('ikea_puter_voice') || 'nova';
+
+    let options = {};
+    if (provider === 'gemini') {
+      options = {
+        provider: 'gemini',
+        model: 'gemini-2.5-flash-preview-tts',
+        voice: voice || 'Puck',
+        instructions: 'Speak in a warm, polite, and natural customer support voice.'
+      };
+    } else if (provider === 'xai') {
+      options = {
+        provider: 'xai',
+        voice: voice || 'ara'
+      };
+    } else if (provider === 'openai') {
+      options = {
+        provider: 'openai',
+        voice: voice || 'shimmer'
+      };
+    } else if (provider === 'elevenlabs') {
+      options = {
+        provider: 'elevenlabs',
+        voice: voice || '21m00Tcm4TlvDq8ikWAM' // Rachel
+      };
+    } else {
+      // Puter default AWS Polly standard/neural
+      options = {
+        voice: voice || 'Joanna',
+        engine: 'neural',
+        language: 'en-US'
+      };
+    }
+
+    const audio = await window.puter.ai.txt2speech(text, options);
+    if (!audio) {
+      throw new Error("Puter TTS failed to generate audio object.");
+    }
+
+    if (!this.isSpeaking) return;
+
+    this.activeAudio = audio;
+
+    audio.onended = () => {
+      this.isSpeaking = false;
+      this.activeAudio = null;
+      onEnd();
+    };
+
+    audio.onerror = (e) => {
+      console.error("Puter audio playback error:", e);
+      this.isSpeaking = false;
+      this.activeAudio = null;
+      onEnd();
+    };
+
+    await audio.play();
   }
 
   // Premium OpenAI TTS caller

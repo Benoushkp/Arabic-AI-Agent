@@ -15,6 +15,8 @@ export default function Settings({ theme, toggleTheme }) {
   const [openaiVoice, setOpenaiVoice] = useState(localStorage.getItem('ikea_openai_voice') || 'shimmer');
   const [elevenlabsApiKey, setElevenlabsApiKey] = useState(localStorage.getItem('ikea_elevenlabs_api_key') || '');
   const [elevenlabsVoiceId, setElevenlabsVoiceId] = useState(localStorage.getItem('ikea_elevenlabs_voice_id') || '21m00Tcm4TlvDq8ikWAM');
+  const [puterProvider, setPuterProvider] = useState(localStorage.getItem('ikea_puter_provider') || 'openai');
+  const [puterVoice, setPuterVoice] = useState(localStorage.getItem('ikea_puter_voice') || 'nova');
 
   useEffect(() => {
     // Load voices
@@ -61,6 +63,8 @@ export default function Settings({ theme, toggleTheme }) {
     localStorage.setItem('ikea_openai_voice', openaiVoice);
     localStorage.setItem('ikea_elevenlabs_api_key', elevenlabsApiKey);
     localStorage.setItem('ikea_elevenlabs_voice_id', elevenlabsVoiceId);
+    localStorage.setItem('ikea_puter_provider', puterProvider);
+    localStorage.setItem('ikea_puter_voice', puterVoice);
     voiceAgent.setApiKey(apiKey);
     
     setSavedStatus(true);
@@ -167,10 +171,122 @@ export default function Settings({ theme, toggleTheme }) {
               onChange={(e) => setTtsEngine(e.target.value)}
             >
               <option value="browser">Local Browser SpeechSynthesis (Default)</option>
+              <option value="puter">Puter Free TTS API (Free & Unlimited Human-like)</option>
               <option value="openai">OpenAI TTS API (Highly Realistic Human-like)</option>
               <option value="elevenlabs">ElevenLabs TTS API (Ultra Realistic / Emotional)</option>
             </select>
           </div>
+
+          {ttsEngine === 'puter' && (
+            <div style={{ marginTop: '1rem', borderLeft: '3px solid var(--text-accent)', paddingLeft: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label">Free Voice Provider</label>
+                <select
+                  className="form-input"
+                  value={puterProvider}
+                  onChange={(e) => {
+                    setPuterProvider(e.target.value);
+                    if (e.target.value === 'openai') setPuterVoice('nova');
+                    else if (e.target.value === 'gemini') setPuterVoice('Puck');
+                    else if (e.target.value === 'xai') setPuterVoice('ara');
+                    else if (e.target.value === 'elevenlabs') setPuterVoice('21m00Tcm4TlvDq8ikWAM');
+                    else setPuterVoice('Joanna');
+                  }}
+                >
+                  <option value="openai">OpenAI TTS (Highly Recommended - Warm & Natural)</option>
+                  <option value="elevenlabs">ElevenLabs TTS (Ultra Realistic Multilingual)</option>
+                  <option value="gemini">Google Gemini TTS (Warm Expressive Voices)</option>
+                  <option value="xai">xAI Grok TTS (Expressive Voices)</option>
+                  <option value="polly">Amazon Polly Neural TTS (Standard Call Center Voice)</option>
+                </select>
+              </div>
+
+              {puterProvider === 'openai' && (
+                <div className="form-group">
+                  <label className="form-label">OpenAI Voice Name</label>
+                  <select
+                    className="form-input"
+                    value={puterVoice}
+                    onChange={(e) => setPuterVoice(e.target.value)}
+                  >
+                    <option value="nova">Nova (Female - Recommended)</option>
+                    <option value="shimmer">Shimmer (Female - Friendly)</option>
+                    <option value="alloy">Alloy (Neutral - Professional)</option>
+                    <option value="echo">Echo (Male - Calm)</option>
+                    <option value="fable">Fable (Neutral - Narrative)</option>
+                    <option value="onyx">Onyx (Male - Deep & Warm)</option>
+                  </select>
+                </div>
+              )}
+
+              {puterProvider === 'elevenlabs' && (
+                <div className="form-group">
+                  <label className="form-label">ElevenLabs Voice ID / Name</label>
+                  <select
+                    className="form-input"
+                    value={puterVoice}
+                    onChange={(e) => setPuterVoice(e.target.value)}
+                  >
+                    <option value="21m00Tcm4TlvDq8ikWAM">Rachel (Female - Conversational)</option>
+                    <option value="AZnzlk1XvdvUeBnXmlld">Domi (Female - Cheerful)</option>
+                    <option value="EXAVITQu4vr4xnSDxMaL">Bella (Female - Professional)</option>
+                    <option value="ErXwobaYiN019PkySvjV">Antoni (Male - Deep)</option>
+                  </select>
+                </div>
+              )}
+
+              {puterProvider === 'gemini' && (
+                <div className="form-group">
+                  <label className="form-label">Gemini Voice Profile</label>
+                  <select
+                    className="form-input"
+                    value={puterVoice}
+                    onChange={(e) => setPuterVoice(e.target.value)}
+                  >
+                    <option value="Puck">Puck (Female - Upbeat & Warm)</option>
+                    <option value="Charon">Charon (Male - Conversational)</option>
+                    <option value="Kore">Kore (Female - Friendly)</option>
+                    <option value="Fenrir">Fenrir (Male - Professional)</option>
+                    <option value="Aoede">Aoede (Female - Empathetic)</option>
+                  </select>
+                </div>
+              )}
+
+              {puterProvider === 'xai' && (
+                <div className="form-group">
+                  <label className="form-label">xAI Voice Profile</label>
+                  <select
+                    className="form-input"
+                    value={puterVoice}
+                    onChange={(e) => setPuterVoice(e.target.value)}
+                  >
+                    <option value="ara">Ara (Female - Warm & Natural)</option>
+                    <option value="eve">Eve (Female - Energetic)</option>
+                    <option value="rex">Rex (Male - Confident)</option>
+                    <option value="sal">Sal (Male - Smooth)</option>
+                    <option value="leo">Leo (Male - Authoritative)</option>
+                  </select>
+                </div>
+              )}
+
+              {puterProvider === 'polly' && (
+                <div className="form-group">
+                  <label className="form-label">Amazon Polly Neural Voice</label>
+                  <select
+                    className="form-input"
+                    value={puterVoice}
+                    onChange={(e) => setPuterVoice(e.target.value)}
+                  >
+                    <option value="Joanna">Joanna (Female - US English)</option>
+                    <option value="Kendra">Kendra (Female - US English)</option>
+                    <option value="Matthew">Matthew (Male - US English)</option>
+                    <option value="Amy">Amy (Female - British English)</option>
+                    <option value="Brian">Brian (Male - British English)</option>
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
 
           {ttsEngine === 'openai' && (
             <div style={{ marginTop: '1rem', borderLeft: '3px solid var(--ikea-blue)', paddingLeft: '1rem' }}>
